@@ -36,3 +36,7 @@
     transform: rotate(360deg);
   }
 }
+
+.MuiTableCell-body {
+  text-transform: capitalize;
+}

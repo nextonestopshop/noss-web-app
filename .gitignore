@@ -10,6 +10,10 @@
 
 # production
 /build
+/out
+# next.js
+/.next
+/.firebase
 
 # misc
 .DS_Store
@@ -18,6 +22,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
+nosswebapp-firebase-adminsdk-sh0mp-ae1a18b926.json
 
 npm-debug.log*
 yarn-debug.log*

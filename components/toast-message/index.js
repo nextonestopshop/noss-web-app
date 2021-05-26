@@ -12,7 +12,7 @@ export const withSnackbar = WrappedComponent => {
       "success"
     ); /** error | warning | info */
 
-    const showMessage = (message, severity = "success", duration = 3000) => {
+    const showMessage = (message, severity = "success", duration = 6000) => {
   
       setMessage(message);
       setSeverity(severity);
@@ -34,7 +34,7 @@ export const withSnackbar = WrappedComponent => {
         <WrappedComponent {...props} snackbarShowMessage={showMessage} />
         <Snackbar
           anchorOrigin={{
-            vertical: "bottom",
+            vertical: "top",
             horizontal: "center"
           }}
           autoHideDuration={duration}

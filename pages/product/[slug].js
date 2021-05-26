@@ -3,6 +3,7 @@ import Head from 'next/head'
 import React from "react";
 import { makeStyles } from '@material-ui/core/styles';
 import { firestore } from "../../lib/firebase";
+import { generatePath } from "../../lib/utils";
 
 import Toolbar from '@material-ui/core/Toolbar';
 import Container from '@material-ui/core/Container';
@@ -52,10 +53,10 @@ const ProductDetail = ({ productDetails }) => {
     return (
         <div>
             <Head>
-                <title key="title">{`${productDetails.title}, ${productDetails.category[0].categoryName} | NOSS`}</title>
-                <meta key="description" name="description" content={`${productDetails.description} Check this and more other amazing ${productDetails.category[0].categoryName} on Next One Stop Shop`} />
-                <meta property="og:title" content={`${productDetails.title}, ${productDetails.category[0].categoryName} | NOSS`} />
-                <meta property="og:description" content={`${productDetails.description} Check this and more other amazing ${productDetails.category[0].categoryName} on Next One Stop Shop`} />
+                <title key="title">{`${productDetails.title}, ${productDetails.category.categoryName} | NOSS`}</title>
+                <meta key="description" name="description" content={`${productDetails.description} Check this and more other amazing ${productDetails.category.categoryName} on Next One Stop Shop`} />
+                <meta property="og:title" content={`${productDetails.title}, ${productDetails.category.categoryName} | NOSS`} />
+                <meta property="og:description" content={`${productDetails.description} Check this and more other amazing ${productDetails.category.categoryName} on Next One Stop Shop`} />
                 <meta property="og:image" content={productDetails.imageUrl.url} />
             </Head>
             <Header />
@@ -69,11 +70,11 @@ const ProductDetail = ({ productDetails }) => {
                                     <Link color="inherit" href="/">
                                         Home
                                     </Link>
-                                    <Link color="inherit" href="/">
-                                        {productDetails.category[0].categoryName}
+                                    <Link color="inherit" href={`/category/${generatePath(productDetails.category.categoryName)}`}>
+                                        {productDetails.category.categoryName}
                                     </Link>
-                                    <Link color="inherit" href="/">
-                                        {productDetails.category[0].subCategoryName}
+                                    <Link color="inherit" href={`/category/${generatePath(productDetails.category.categoryName)}/${generatePath(productDetails.category.subCategoryName)}`}>
+                                        {productDetails.category.subCategoryName}
                                     </Link>
                                 </Breadcrumbs>
                             </Container>

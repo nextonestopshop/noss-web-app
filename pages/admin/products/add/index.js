@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { makeStyles } from '@material-ui/core/styles';
-import { useRouter } from 'next/router';
+import { useRouter, withRouter } from 'next/router';
 import { firestore } from "../../../../lib/firebase";
+import { generatePath } from "../../../../lib/utils";
 import TextField from '@material-ui/core/TextField';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
@@ -12,6 +13,7 @@ import Button from '@material-ui/core/Button';
 import ImageUpload from '../../../../components/image-upload'
 import Header from "../../../../components/header";
 import LeftDrawer from "../../../../components/left-drawer";
+import {withSnackbar} from "../../../../components/toast-message";
 
 const useStyles = makeStyles((theme) => ({
     card: {
@@ -33,7 +35,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const AddProductComponent = (props) => {
+const AddProductComponent = withSnackbar((props) => {
     const classes = useStyles();
     const router = useRouter();
     const [state, setState] = useState({
@@ -44,42 +46,60 @@ const AddProductComponent = (props) => {
         price: '',
         rating: '',
         description: '',
+        // tags: '',
         imageUrl: null
     })
-    const [category, setCategory] = useState(null)
+    const [category, setCategory] = useState({})
     const [categoryList, setCategoryList] = useState([])
-    const [subCategory, setSubCategory] = useState(null)
+    const [subCategory, setSubCategory] = useState({})
     const [subCategoryList, setSubCategoryList] = useState([])
     const [tag, setTag] = useState(null)
     const [tags, setTags] = useState([])
     const [tagsList, setTagsList] = useState([])
+    const [isEdit, setIsEdit] = useState(false)
+    const [productId, setProductId] = useState(null)
     
     const handleSubmit = (e) => {
         e.preventDefault()
         let params = {
             ...state,
             path: generatePath(state.title),
-            category: subCategory ? [{
+            category: subCategory ? {
                 categoryId: category.id,
                 categoryName: category.name,
                 subCategoryId: subCategory.id,
                 subCategoryName: subCategory.name
-            }] : [],
-            tags
+            } : null,
+            tags: tags ? tags.split(',') : []
         }
         console.log(params)
-        firestore.collection('products').add(params)
+        if (isEdit) {
+            updateProduct(params)
+        } else {
+            saveNewProduct(params)
+        }
+    }
+    
+    const saveNewProduct = (params) => {
+        firestore.collection('products').doc().set(params)
             .then(res => {
                 router.push('/admin/products/list')
-            }).catch(err => console.log(err))
+                props.snackbarShowMessage(`New Product added successfully`)
+            }).catch(err => {
+                console.log(err)
+                props.snackbarShowMessage(error, 'error')
+            })
+    }
 
-    } 
-
-    const generatePath = (val) => {
-        if (val) {
-            let formattedValue = val.toLowerCase().split(' ').join('-')
-            return formattedValue
-        }
+    const updateProduct = (params) => {
+        firestore.collection('products').doc(productId).update(params)
+            .then(res => {
+                router.push('/admin/products/list')
+                props.snackbarShowMessage(`Product updated successfully`)
+            }).catch(err => {
+                console.log(err)
+                props.snackbarShowMessage(error, 'error')
+            })
     }
 
     const getImageData = (data) => {
@@ -92,7 +112,7 @@ const AddProductComponent = (props) => {
     }
 
     const handleAutocompleteChange = (type, item) => {
-        setState({ ...state, [type]: item.value })
+        setState({ ...state, [type]: item })
 
     }
 
@@ -117,6 +137,7 @@ const AddProductComponent = (props) => {
     const handleCategoryChange = async (item) => {
         if (item) {
             let list = await getCategoryBasedOnParentId(item.id)
+            list = list.map(subCat => ({ id: subCat.id, name: subCat.name }))
             setSubCategoryList(list)
             setCategory(item)
         } else {
@@ -127,8 +148,8 @@ const AddProductComponent = (props) => {
 
     const handleTagsChange = (e) => {
         let tag_list = e.target.value
-        let tags_arr = tag_list.split(',')
-        setTags(tags_arr || [])
+        // let tags_arr = tag_list.split(',')
+        setTags(tag_list || '')
     }
 
     /** const handleTagsKeyDown = (e) => {
@@ -162,18 +183,57 @@ const AddProductComponent = (props) => {
             }).catch(err => console.log(err))
     }
 
+    const setFormDataonEdit = () => {
+        setIsEdit(true)
+        let productData = JSON.parse(props.router.query.data)
+        console.log(productData)
+        
+        setProductId(productData.id)
+
+        setState({
+            title: productData.title || '',
+            channel: productData.channel || '',
+            productUrl: productData.productUrl || '',
+            currency: productData.currency || '',
+            price: productData.price || '',
+            rating: productData.rating || '',
+            description: productData.description || '',
+            imageUrl: productData.imageUrl || null
+            // tags: productData.tags ? productData.tags.join() : ''
+        })
+
+        let tag_list = productData.tags ? productData.tags.join() : ''
+        setTags(tag_list)
+        
+        let category_item = productData.category ? {
+            id: productData.category.categoryId,
+            name: productData.category.categoryName
+        } : {}
+        setCategory(category_item)
+        
+        let subcategory_item = productData.category ? {
+            id: productData.category.subCategoryId,
+            name: productData.category.subCategoryName
+        } : {}
+        setSubCategory(subcategory_item)
+    }
+
     useEffect(() => {
         (async function () {
             if (!categoryList.length) {
                 let category_list = await getCategoryBasedOnParentId('')
+                category_list = category_list.map(cat => ({ id: cat.id, name: cat.name }))
                 setCategoryList(category_list)
             }
-            if (!tagsList.length) {
-                let tag_list = await getTagsList()
-                setTagsList(tag_list)
+            if (router.query.data) {
+                setFormDataonEdit()
             }
+            // if (!tagsList.length) {
+            //     let tag_list = await getTagsList()
+            //     setTagsList(tag_list)
+            // }
         })()
-    }, [])
+    }, [router])
 
     return (
         <>
@@ -186,7 +246,7 @@ const AddProductComponent = (props) => {
                     <form className={classes.form} noValidate onSubmit={handleSubmit}>
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={3}>
-                                <ImageUpload imageType={'products'} getUrl={getImageData} />
+                                <ImageUpload imageType={'products'} getUrl={getImageData} defaultValue={state.imageUrl} />
                             </Grid>
                             <Grid item xs={12} md={9}>
                                 <Grid container spacing={3}>
@@ -194,12 +254,11 @@ const AddProductComponent = (props) => {
                                         <TextField value={state.title} onChange={handleInputChange} variant="outlined" required size="small" fullWidth id="title" label="Title" name= "title" autoFocus />
                                     </Grid>
                                     <Grid item md={3} xs={12}>
-                                        <Autocomplete id="channel" size="small" options={[
-                                                { value: 'amazon', label: 'Amazon' },
-                                                { value: 'etsy', label: 'Etsy' }
-                                            ]}
-                                            getOptionLabel={(option) => option.label} fullwidth
+                                        <Autocomplete id="channel" size="small" options={['amazon', 'etsy']}
+                                            value={state.channel}
+                                            getOptionLabel={(option) => option || ''} fullwidth
                                             onChange={(e, item) => handleAutocompleteChange('channel', item)}
+                                            getOptionSelected={(option, selected) => option === selected}
                                             renderInput={(params) => <TextField {...params} label="Channel" name="channel" variant="outlined" />}
                                         />
                                     </Grid>
@@ -209,14 +268,11 @@ const AddProductComponent = (props) => {
                                     <Grid item md={6} xs={12}>
                                         <Grid container spacing={0}>
                                             <Grid item xs={4}>
-                                                <Autocomplete id="currency" size="small" options={[
-                                                        { value: '$', label: '$' },
-                                                        { value: '₹', label: '₹' },
-                                                        { value: '£', label: '£' },
-                                                        { value: '€', label: '€' },
-                                                    ]}
-                                                    getOptionLabel={(option) => option.label} fullwidth
+                                                <Autocomplete id="currency" size="small" options={['$', '₹', '£', '€']}
+                                                    value={state.currency}
+                                                    getOptionLabel={(option) => option || ''} fullwidth
                                                     onChange={(e, item) => handleAutocompleteChange('currency', item)}
+                                                    getOptionSelected={(option, selected) => option === selected}
                                                     renderInput={(params) => <TextField {...params} label="Currency" variant="outlined" />} />
                                             </Grid>
                                             <Grid item xs={8}>
@@ -229,18 +285,22 @@ const AddProductComponent = (props) => {
                                     </Grid>
                                     <Grid item md={4} xs={12}>
                                         <Autocomplete id="category" size="small" options={categoryList}
-                                            getOptionLabel={(option) => option.name} fullwidth
+                                            value={category}
+                                            getOptionLabel={(option) => option.name || ''} fullwidth
                                             onChange={(e, item) => handleCategoryChange(item)}
+                                            getOptionSelected={(option, selected) => option.id === selected.id}
                                             renderInput={(params) => <TextField {...params} label="Category" variant="outlined" />} />
                                     </Grid>
                                     <Grid item md={4} xs={12}>
-                                        <Autocomplete id="subcategory" size="small" options={subCategoryList} 
-                                            getOptionLabel={(option) => option.name} fullwidth
+                                        <Autocomplete id="subcategory" size="small" options={subCategoryList}
+                                            value={subCategory}
+                                            getOptionLabel={(option) => option.name || ''} fullwidth
                                             onChange={(e, item) => handleSubCategoryChange(item)}
+                                            getOptionSelected={(option, selected) => option.id === selected.id}
                                             renderInput={(params) => <TextField {...params} label="Sub-Category" variant="outlined" />} />
                                     </Grid>
                                     <Grid item md={4} xs={12}>
-                                        <TextField value={state.tags} onChange={handleTagsChange} variant="outlined" size="small" fullWidth id="tags" label="Tags" name= "tags" />
+                                        <TextField value={tags} onChange={handleTagsChange} variant="outlined" size="small" fullWidth id="tags" label="Tags" name= "tags" />
                                     </Grid>
                                     
                                     <Grid item xs={12}>
@@ -262,7 +322,7 @@ const AddProductComponent = (props) => {
             </div>
         </>
     )
-}
+})
 
 export const getStaticProps = async () => {
     return {
@@ -270,4 +330,4 @@ export const getStaticProps = async () => {
     }
 }
 
-export default AddProductComponent;
+export default withRouter(AddProductComponent);

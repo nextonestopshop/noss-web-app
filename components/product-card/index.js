@@ -45,7 +45,7 @@ const useStyles = makeStyles((theme) => ({
         textAlign: 'justify',
         minHeight: '90px',
         maxHeight: '90px',
-        overflow: 'scroll'
+        overflow: 'hidden'
     },
     productDetails: {
         paddingBottom: '16px !important'  

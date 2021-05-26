@@ -56,3 +56,11 @@ a {
   min-width: 120px;
   max-width: 500px;
 }
+
+.MuiDialog-paper {
+  min-width: 400px;
+}
+
+.MuiDialogActions-root {
+  padding: 16px !important;
+}

@@ -48,7 +48,7 @@ const CategoryListComponent = ({ categoryList }) => {
         console.log(formattedList)
         setItems(formattedList)
     }, []);
-
+    
     const formatCategoryList = (list) => {
         let formattedList = []
         list.map((item) => {

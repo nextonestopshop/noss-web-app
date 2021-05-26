@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Link from 'next/link';
 import { makeStyles } from '@material-ui/core/styles';
-import { firestore } from "../lib/firebase";
+import { firestore } from "../../../lib/firebase";
+
 import Toolbar from '@material-ui/core/Toolbar';
 import Container from '@material-ui/core/Container';
 import Grid from '@material-ui/core/Grid';
 import Typography from '@material-ui/core/Typography';
 
-import Header from "../components/header";
-import ProductCard from "../components/product-card";
-
-const MetaTitle = 'Next One Stop Shop - Your Next Shopping Destination | NOSS'
-const MetaDescription = 'Amazing gifts for your brother, sister, father, mother or anyone you would like to buy a gift for! Next one stop shop is your only shopping destinations to buy gifts for your loved ones. Explore 10,000+ curated ideas just for you.'
+import Header from "../../../components/header";
+import ProductCard from "../../../components/product-card";
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -32,10 +32,13 @@ const useStyles = makeStyles((theme) => ({
         maxWidth: '590px',
         margin: 'auto'
     }
-}))
-            
-const HomeComponent = ({ productList }) => {
-    const classes = useStyles();
+}));
+
+const CategoryPage = ({ productList, categoryName }) => {
+    const classes = useStyles()
+    const router = useRouter()
+    const MetaTitle = `${categoryName} | NOSS`
+    const MetaDescription = `Curated list of ${categoryName} items just for you. Find the perfect gift for your loved ones on Next One Stop Shop`
 
     return (
         <>
@@ -52,12 +55,10 @@ const HomeComponent = ({ productList }) => {
                 <Toolbar />
 
                 <Typography className={ classes.pageTitle } variant="h1" color="textPrimary">
-                    Next One Stop Shop | NOSS
+                    {categoryName}
                 </Typography>
                 <Typography className={classes.pageDescription} variant="subtitle1" color="textPrimary" paragraph>
-                    Your shopping destination to buy gifts
-                    for your loved ones! Specially curated lists to make it easy
-                    for you to find the right gift.
+                    Curated list of {categoryName} items just for you. Find the perfect gift for your loved ones.
                 </Typography>
 
                 <div className="home-wrapper">
@@ -78,20 +79,57 @@ const HomeComponent = ({ productList }) => {
         </>
     )
 }
+    
+export async function getStaticPaths() {
+    const categoryList = await firestore.collection('category')
+        .where('parentId', '==', '')
+        .get().then(snapshot => {
+            const listItems = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            return listItems
+        }).catch(err => console.log(err))
 
-export const getStaticProps = async () => {
-  const productList = await firestore.collection('products')
-      .get().then(snapshot => {
-          const listItems = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-          }))
-          return listItems
-      }).catch(err => console.log(err))
+    const paths = categoryList.map((category) => ({
+        params: {
+            categoryPath: category.path
+        },
+    }))
 
-  return {
-    props: { productList },
-  }
+    return {
+        paths,
+        fallback: false
+    }
 }
 
-export default HomeComponent;
+export const getStaticProps = async ({ params }) => {
+    const categoryDetails = await firestore.collection('category')
+        .where('path', '==', params.categoryPath)
+        .get().then(snapshot => {
+            const listItems = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            console.log(listItems)
+            return listItems[0]
+        }).catch(err => console.log(err))
+    
+    const categoryName = categoryDetails.name
+
+    const productList = await firestore.collection('products')
+        .where('category.categoryId', '==', categoryDetails.id)
+        .get().then(snapshot => {
+            const listItems = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            return listItems
+        }).catch(err => console.log(err))
+
+    return {
+        props: { productList, categoryName },
+    }
+}
+
+export default CategoryPage

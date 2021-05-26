@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { makeStyles } from '@material-ui/core/styles';
 import { useRouter } from 'next/router';
 import { firestore } from "../../../../lib/firebase";
+import { generatePath } from "../../../../lib/utils";
 import TextField from '@material-ui/core/TextField';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
@@ -32,18 +33,24 @@ const AddCategoryComponent = withSnackbar((props) => {
     const [state, setState] = useState({
         categoryName: '',
         parentId: '',
+        parentName: ''
     })
     const [category, setCategory] = useState([])
     
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        firestore.collection('category').doc().set({
+        
+        let params = {
             name: state.categoryName,
-            parentId: state.parentId
-        }).then(() => {
-            props.snackbarShowMessage(`Category ${state.categoryName} added`);
+            parentId: state.parentId,
+            path: generatePath(state.categoryName),
+            parentName: state.parentName
+        }
+
+        firestore.collection('category').doc().set(params).then(() => {
             router.push("/admin/category/list");
+            props.snackbarShowMessage(`Category ${state.categoryName} added`);
         }).catch((err) => {
             props.snackbarShowMessage(`Error - ${err}`);
         })
@@ -55,7 +62,7 @@ const AddCategoryComponent = withSnackbar((props) => {
     }
 
     const handleAutocompleteChange = (type, item) => {
-        setState({ ...state, [type]: item.id })
+        setState({ ...state, [type]: item.id, parentName: item.name })
     }
 
     const getCategoryBasedOnParentId = async (id) => {

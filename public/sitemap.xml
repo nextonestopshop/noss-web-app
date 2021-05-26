@@ -6,4 +6,7 @@
     <sitemap>
       <loc>https://nextonestopshop.com/sitemap-products.xml</loc>
     </sitemap>
+    <sitemap>
+      <loc>https://nextonestopshop.com/sitemap-category.xml</loc>
+    </sitemap>
   </sitemapindex>
